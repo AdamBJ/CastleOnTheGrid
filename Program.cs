@@ -34,7 +34,8 @@ class CastleOnTheGrid {
     static int minimumMoves(string[] grid, int startX, int startY, int goalX, int goalY)     {
         // This is BFS except we only consider the length of a path we find to increase
         // if the path turns
-        HashSet<string> visited = new HashSet<string>();
+        //HashSet<string> visited = new HashSet<string>();
+        int[,] visited = new int[grid.Length, grid.Length];
         Coords start = new Coords(startX, startY, 0, Direction.START);
         Queue<Coords> bfsQueue = new Queue<Coords>();
         bfsQueue.Enqueue(start);
@@ -42,12 +43,14 @@ class CastleOnTheGrid {
         while (bfsQueue.Count != 0)
         {
             Coords curr = bfsQueue.Dequeue();
-            if (!visited.Add(curr.x.ToString() + curr.y.ToString()))
+            if (visited[curr.x, curr.y] != 0)
             {
                 // Element has been added to the queue twice and was already processed
                 continue;
             }
-            Console.WriteLine("Vistied ({0},{1})", curr.x, curr.y);
+            
+            visited[curr.x, curr.y] = 1;
+            //Console.WriteLine("Vistied ({0},{1})", curr.x, curr.y);
 
             if(curr.x == goalX && curr.y == goalY)
             {
@@ -64,7 +67,7 @@ class CastleOnTheGrid {
         throw new Exception("No solution found");
     }
 
-    static bool tryDirection(Direction d, Queue<Coords> bfsQueue, Coords start, string[] grid, HashSet<string> visited)
+    static bool tryDirection(Direction d, Queue<Coords> bfsQueue, Coords start, string[] grid, int[,] visited)
     {
         Coords dest = getDestination(start, d);          
         if(isValidMove(dest, grid, visited))
@@ -76,12 +79,8 @@ class CastleOnTheGrid {
         return false;
     }
 
-    static bool isValidMove(Coords destination, string[] grid, HashSet<string> visited)
+    static bool isValidMove(Coords destination, string[] grid, int[,] visited)
     {
-        if (visited.Contains(destination.x.ToString() + destination.y.ToString()))
-        {
-            return false;
-        }
         
         // Check for out of bounds end
         if ((destination.x < 0 || destination.x > grid.Length - 1) ||
@@ -92,6 +91,11 @@ class CastleOnTheGrid {
 
         // Check for blocked end
         if (grid[destination.x][destination.y] == 'X')
+        {
+            return false;
+        }
+
+        if (visited[destination.x, destination.y] != 0)
         {
             return false;
         }
