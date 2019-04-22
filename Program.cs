@@ -13,39 +13,48 @@ using System.Text;
 using System;
 
 class CastleOnTheGrid {
-    enum Direction {NORTH, EAST, SOUTH, WEST};
+    // START is for when direction doesn't matter, i.e. when we start
+    // searching for a path
+    enum Direction {NORTH, EAST, SOUTH, WEST, START};
 
     struct Coords
     {
         public int x, y, numMovesToGetHere;
+        public Direction directionEntered;
 
-        public Coords(int p1, int p2, int numMovesToGetHere)
+        public Coords(int p1, int p2, int numMovesToGetHere, Direction d)
         {
             x = p1;
             y = p2;
             this.numMovesToGetHere = numMovesToGetHere;
+            this.directionEntered = d;
         }
     }
 
     static int minimumMoves(string[] grid, int startX, int startY, int goalX, int goalY)     {
-        // This is BFS except we aren't moving by one node at a time. Rather, a move
-        // continues until we have to make a turn or we find the target. BFS uses
-        // a queue
+        // This is BFS except we only consider the length of a path we find to increase
+        // if the path turns
         HashSet<string> visited = new HashSet<string>();
-        Coords start = new Coords(startX, startY, 0);
+        Coords start = new Coords(startX, startY, 0, Direction.START);
         Queue<Coords> bfsQueue = new Queue<Coords>();
         bfsQueue.Enqueue(start);
 
         while (bfsQueue.Count != 0)
         {
             Coords curr = bfsQueue.Dequeue();
-            visited.Add(curr.x.ToString() + curr.y.ToString());
+            if (!visited.Add(curr.x.ToString() + curr.y.ToString()))
+            {
+                // Element has been added to the queue twice and was already processed
+                continue;
+            }
+            Console.WriteLine("Vistied ({0},{1})", curr.x, curr.y);
+
             if(curr.x == goalX && curr.y == goalY)
             {
                 return curr.numMovesToGetHere;
             }
 
-            // Attempt to enqueue all possible moves from this position
+            // enqueue all possible moves from this position
             tryDirection(Direction.NORTH, bfsQueue, curr, grid, visited);
             tryDirection(Direction.EAST, bfsQueue, curr, grid, visited);
             tryDirection(Direction.SOUTH, bfsQueue, curr, grid, visited);
@@ -57,10 +66,10 @@ class CastleOnTheGrid {
 
     static bool tryDirection(Direction d, Queue<Coords> bfsQueue, Coords start, string[] grid, HashSet<string> visited)
     {
-        if(isValidMove(getDestination(start, d), grid, visited))
+        Coords dest = getDestination(start, d);          
+        if(isValidMove(dest, grid, visited))
         {
-            Coords end = getDestination(start, d);          
-            bfsQueue.Enqueue(end);
+            bfsQueue.Enqueue(dest);
             return true;
         }
 
@@ -90,23 +99,29 @@ class CastleOnTheGrid {
         return true;
     }
 
-    static Coords getDestination(Coords start, Direction d)
+    // d is the direction in which we are moving
+    static Coords getDestination(Coords start, Direction directionOfMovement)
     {
+        // TODO need a way to determine if we should increment start.numMovesToGetHere
+        // We need to increm if the path ever turns
         Coords destination;
+        // Only consider this a new move if we have to make a turn
+        int numMovesToGetHere = start.directionEntered == directionOfMovement ?
+            start.numMovesToGetHere : start.numMovesToGetHere + 1;
 
-        switch (d)
+        switch (directionOfMovement)
         {
             case Direction.NORTH:
-                destination = new Coords(start.x-1, start.y, start.numMovesToGetHere);
+                destination = new Coords(start.x-1, start.y, numMovesToGetHere, Direction.NORTH);
                 break;
             case Direction.EAST:
-                destination = new Coords(start.x, start.y+1, start.numMovesToGetHere);
+                destination = new Coords(start.x, start.y+1, numMovesToGetHere, Direction.EAST);
                 break;
             case Direction.SOUTH:
-                destination = new Coords(start.x+1, start.y, start.numMovesToGetHere);
+                destination = new Coords(start.x+1, start.y, numMovesToGetHere, Direction.SOUTH);
                 break;
             case Direction.WEST:
-                destination = new Coords(start.x, start.y-1, start.numMovesToGetHere);
+                destination = new Coords(start.x, start.y-1, numMovesToGetHere, Direction.WEST);
                 break;
             default:
                 throw new ArgumentException("d is neither NORTH, EAST, SOUTH, or WEST");
