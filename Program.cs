@@ -22,16 +22,19 @@ class CastleOnTheGrid {
         public int x, y, numMovesToGetHere;
         public Direction directionEntered;
 
+        public List<Coords> pathToHere;
+
         public Coords(int p1, int p2, int numMovesToGetHere, Direction d)
         {
             x = p1;
             y = p2;
             this.numMovesToGetHere = numMovesToGetHere;
             this.directionEntered = d;
+            this.pathToHere = new List<Coords>();
         }
     }
 
-    static int minimumMoves(string[] grid, int startX, int startY, int goalX, int goalY)     {
+    static int minimumMoves(string[] grid, int startX, int startY, int goalX, int goalY)     {    
         // This is BFS except we only consider the length of a path we find to increase
         // if the path turns
         //HashSet<string> visited = new HashSet<string>();
@@ -39,22 +42,33 @@ class CastleOnTheGrid {
         Coords start = new Coords(startX, startY, 0, Direction.START);
         Queue<Coords> bfsQueue = new Queue<Coords>();
         bfsQueue.Enqueue(start);
+        Coords end = new Coords(startX, startY, 0, Direction.START);
+        int pathToFinish = Int16.MaxValue;
 
         while (bfsQueue.Count != 0)
         {
             Coords curr = bfsQueue.Dequeue();
-            if (visited[curr.x, curr.y] != 0)
-            {
-                // Element has been added to the queue twice and was already processed
-                continue;
-            }
+                   outputPath(end, grid, startX, startY, goalX, goalY);
+
+            // if (visited[curr.x, curr.y] != 0)
+            // {
+            //     // Element has been added to the queue twice and was already processed
+            //     continue;
+            // }
             
-            visited[curr.x, curr.y] = 1;
+            //visited[curr.x, curr.y] = 1;
             //Console.WriteLine("Vistied ({0},{1})", curr.x, curr.y);
 
             if(curr.x == goalX && curr.y == goalY)
             {
-                return curr.numMovesToGetHere;
+                if (curr.numMovesToGetHere < pathToFinish)
+                {
+                    pathToFinish = curr.numMovesToGetHere;
+                    end = curr;
+                }
+                
+                
+                //return curr.numMovesToGetHere;
             }
 
             // enqueue all possible moves from this position
@@ -63,10 +77,68 @@ class CastleOnTheGrid {
             tryDirection(Direction.SOUTH, bfsQueue, curr, grid, visited);
             tryDirection(Direction.WEST, bfsQueue, curr, grid, visited);
         }
-
-        throw new Exception("No solution found");
+            
+        
+        if (pathToFinish == Int16.MaxValue)
+        {
+            throw new Exception("No solution found");
+        }
+            
+       outputPath(end, grid, startX, startY, goalX, goalY);
+        
+        return pathToFinish;
     }
 
+    static void outputPath(Coords curr, string[] grid, int startX, int startY, int goalX, int goalY)
+    {
+         Console.Clear();
+                
+        for (int i=0; i < grid.Length; i++)
+        {
+            for (int j=0; j < grid[i].Length; j++)
+            {
+                if (i == startX && j == startY || i == goalX && j == goalY)
+                {        
+                    Console.BackgroundColor = ConsoleColor.Blue;
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.Write("!");
+                    Console.ResetColor();
+                }
+                else if (onPath(curr, i, j))
+                {
+                    Console.BackgroundColor = ConsoleColor.White;
+                    Console.ForegroundColor = ConsoleColor.Blue;
+                    Console.Write("z");
+                    Console.ResetColor();
+                }
+                // else if (visited[i,j] != 0)
+                // {
+                //     Console.BackgroundColor = ConsoleColor.White;
+                //     Console.ForegroundColor = ConsoleColor.Blue;
+                //     Console.Write("z");
+                //     Console.ResetColor();
+                // }
+                else
+                {
+                    Console.Write(grid[i][j]);
+                }
+            }
+            Console.WriteLine();
+        }
+    }
+
+    static bool onPath(Coords end, int i, int j)
+    {
+        foreach(Coords coord in end.pathToHere)
+        {
+            if (coord.x == i && coord.y == j)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
     static bool tryDirection(Direction d, Queue<Coords> bfsQueue, Coords start, string[] grid, int[,] visited)
     {
         Coords dest = getDestination(start, d);          
@@ -95,7 +167,7 @@ class CastleOnTheGrid {
             return false;
         }
 
-        if (visited[destination.x, destination.y] != 0)
+        if (onPath(destination, destination.x, destination.y))
         {
             return false;
         }
@@ -116,7 +188,7 @@ class CastleOnTheGrid {
         switch (directionOfMovement)
         {
             case Direction.NORTH:
-                destination = new Coords(start.x-1, start.y, numMovesToGetHere, Direction.NORTH);
+                destination = new Coords(start.x-1, start.y, numMovesToGetHere, Direction.NORTH); 
                 break;
             case Direction.EAST:
                 destination = new Coords(start.x, start.y+1, numMovesToGetHere, Direction.EAST);
@@ -131,6 +203,11 @@ class CastleOnTheGrid {
                 throw new ArgumentException("d is neither NORTH, EAST, SOUTH, or WEST");
         }
 
+        foreach (Coords coord in start.pathToHere)
+        {
+            destination.pathToHere.Add(coord);
+        }
+        destination.pathToHere.Add(start);
         return destination;
     }   
 
